@@ -58,24 +58,134 @@ rl-gate --candidate rl-policy:experiments/31-rl-research-level/policy-bB-mM.tsv 
 \section{Results}
 \ExpResults
 
-\todo{claude}{After the runs.}
+All numbers are copied from \texttt{check.json}, \texttt{level-summary-b*.json}, \texttt{val-*.json},
+\texttt{eval-*.json} and the \texttt{rl-gate} JSONs in this folder (28 Nov 2026; per-seed rows dropped, the runs are
+deterministic). Data: 300{,}000 games with a random walk over the levels on r15, 8{,}486{,}283 rows, 1{,}515\,s on
+10 threads. States: 144 without income, 1{,}756 with income / 3.
+
+\paragraph{Action check} (2{,}000 check seeds, each level every turn; r15 7{,}148):
+
+\begin{center}\small
+\begin{tabular}{lrrrrrrl}
+\toprule
+level & mean & p10 & cities & income & techs & $d$ & better / worse \\
+\midrule
+r15 ($\times1$) & 7{,}148 & 1{,}510 & 2.62 & 17.08 & 19.31 &        & \\
+$\times0.5$     & 6{,}725 & 1{,}395 & 2.53 & 16.37 & 18.36 & $-423$ & 610 / 1{,}078 \\
+$\times0.75$    & 6{,}854 & 1{,}390 & 2.59 & 16.75 & 18.47 & $-294$ & 532 / 925 \\
+$\times1.33$    & 7{,}237 & 1{,}495 & 2.54 & 16.69 & 19.77 & $+89$  & 936 / 730 \\
+$\times2$       & 7{,}112 & 1{,}424 & 2.32 & 15.31 & 19.96 & $-36$  & 997 / 922 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Value iteration and validation} (2{,}000 validation seeds against r15, base mean 7{,}282).
+
+\begin{center}\small
+\begin{tabular}{lrrrrrr}
+\toprule
+version & $m$ & $V(\text{start})$ & keep $\times1$ & predicted gain & validation mean $d$ & better / worse \\
+\midrule
+(turn, level)          & 20, 100, 500 & 7{,}135 & 6{,}488 & $+646$ & $+132$ & 1{,}094 / 733 \\
+(turn, level, income)  & 20           & 7{,}255 & 6{,}559 & $+696$ & $+78$  & 941 / 745 \\
+                       & 100          & 7{,}253 & 6{,}559 & $+694$ & $+72$  & 941 / 745 \\
+                       & 500          & 7{,}231 & 6{,}559 & $+673$ & $+84$  & 945 / 737 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Chosen: $m = 500$ for both versions.
+
+\paragraph{Evaluation seeds} (10{,}000, \texttt{rl-gate}; r15 7{,}199, median 8{,}655, p10 1{,}480). The two fixed
+levels were written as level policies after the action check and before the gates: $\times1.33$ from turn 0 (the
+best level of the check, \texttt{schedule-static-x1.33.tsv}) and $\times2$ from turn 1 (the level the path holds from
+turn 14, \texttt{schedule-static-x2.tsv}).
+
+\begin{center}\small
+\begin{tabular}{llrrrrl}
+\toprule
+candidate & base & mean & mean $d$ (99\% bounds) & better / worse & sign $p$ & verdict \\
+\midrule
+(turn, level)         & r15 & 7{,}351 & $+152$ ($+110$, $+194$) & 5{,}328 / 3{,}801 & $6\cdot10^{-58}$ & \textbf{PASS} \\
+(turn, level, income) & r15 & 7{,}357 & $+158$ ($+121$, $+195$) & 4{,}880 / 3{,}556 & $2\cdot10^{-47}$ & \textbf{PASS} \\
+static $\times1.33$   & r15 & 7{,}298 & $+99$ ($+54$, $+144$)   & 4{,}650 / 3{,}784 & $2\cdot10^{-21}$ & FAIL (p10) \\
+(turn, level)         & static $\times1.33$ & & $+54$ ($+7$, $+100$)   & 4{,}991 / 4{,}132 & $1\cdot10^{-19}$ & \textbf{PASS} \\
+(turn, level)         & static $\times2$    & & $+89$ ($+45$, $+134$)  & 3{,}445 / 3{,}133 & $6\cdot10^{-5}$  & \textbf{PASS} \\
+(turn, level, income) & (turn, level)       & & $+6$ ($-34$, $+45$)    & 3{,}879 / 4{,}181 & 1.0              & FAIL \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+p10: 1{,}520 (turn, level), 1{,}490 (with income), 1{,}479.5 (static $\times1.33$, half a point below r15, so the
+guard fails it); static $\times2$ scores 7{,}262. 15 opponents (information only): $-44$ ($-109$, $+22$) without
+income and $+2$ with income (its p10 670 against 675).
 
 \section{Behaviour}
-\todo{claude}{The learned schedule (mean factor by turn) of both versions.}
-\todo{jakob}{What you saw in the live games, if you watched any.}
+Mean research factor by turn on the evaluation seeds (\texttt{eval-b*-m500.json}):
+
+\begin{center}\small
+\begin{tabular}{lcccccc}
+\toprule
+version & turns 0--4 & 5--9 & 10--14 & 15--19 & 20--24 & 25--29 \\
+\midrule
+(turn, level)         & 1.40 & 1.60 & 1.73 & 2.00 & 2.00 & 2.00 \\
+(turn, level, income) & 0.66 & 0.90 & 1.45 & 1.65 & 1.92 & 1.81 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Without income the path is $\times1$ at turn 0, then moves between $\times1.33$ and $\times2$ until turn 13 (at
+$\times2$ on turns 2, 6, 8, 11, 12) and holds $\times2$ from turn 14 to the end: $\times1$ / $\times1.33$ / $\times2$
+on 4 / 29 / 67\% of turns, mean factor 1.79. With income the policy first goes \emph{down} (to $\times0.5$ at turn 3
+in many games) and climbs to near $\times2$ from turn 17: both versions research far more in the second half than
+in the first.
 
 \section{Interpretation}
-\todo{claude}{Why the result came out this way, and whether the prediction held.}
-\todo{jakob}{Your reading: agree, disagree, what is missing?}
+\textbf{Prediction 1 ($\times2$ within $\pm100$, $\times0.5$ at least 200 worse): right} ($-36$ and $-423$).
+\textbf{Prediction 2 (above $\times1$ in at least 5 of the last 10 turns): right} (all 10 at $\times2$).
+\textbf{Prediction 3 (0 to $+150$, no PASS): wrong.} Both versions pass, $+152$ and $+158$.
+\textbf{Prediction 4 (model optimistic by more than 200): right} ($+646$ predicted, $+152$ measured).
+\textbf{Prediction 5 (income adds little): right} ($+6$, $p = 1.0$).
+
+\textbf{Here the timing pays, unlike economy in 29.} The learned path beats both fixed levels it is made of:
+$\times1.33$ every turn by $+54$ and $\times2$ every turn by $+89$, both PASS. In 29, the economy policy was no better
+than a static cut. The check shows why a fixed level cannot do it: $\times2$ every turn wins the most techs but costs
+expansion early (2.32 cities against 2.62, income 15.3 against 17.1), and so ends behind $\times1.33$. The policy
+researches moderately in the opening, while cities and income compound, and at full $\times2$ from turn 14, when a
+tech scores at once and there is no time left for an expansion to pay back. That is the mechanism of prediction 2,
+and it is worth more than prediction 3 allowed.
+
+\textbf{The model ranks well and values badly, as in 29.} ``Keep $\times1$'' is valued at 6{,}488, about 700 below
+r15's real score, so the predicted gain ($+646$) is four times the measured one. The opening zigzag between
+$\times1.33$ and $\times2$ is a second sign of near-equal values there; the late part of the path is the stable one.
 
 \section{Threats to validity}
-\todo{claude}{Two or three concrete threats.}
+\begin{itemize}
+  \item \emph{The fixed levels compared are two.} A ramp written by hand (e.g.\ $\times1.33$ to turn 13, $\times2$
+        after) might match the policy; then the RL contribution is finding the ramp, not a schedule no simple rule
+        gives. The $\times2$ level was chosen after seeing the path, but not on the evaluation seeds.
+  \item \emph{Crowded games.} With 15 opponents the policy without income is $-44$ (not significant; information
+        only): the late research push may not pay where fights decide more.
+  \item \emph{Model bias from the random walk}, as in 29: the model's values cannot be read as expected scores; only
+        the gate measures the policy.
+\end{itemize}
 
 \section{Verdict and next step}
-\todo{claude}{Kept or not, and the next experiment this suggests.}
+\textbf{PASS against r15} for both versions ($+152$, $+158$; with income not significantly better, and its p10 is
+lower), and the (turn, level) policy also passes against the best fixed level ($+54$) and against $\times2$ every turn
+($+89$). Chosen version: (turn, level), $m = 500$. Whether it enters the RL line is for David and Jakob to decide.
+
+Next step (one idea): combine it with 29's economy policy. Economy and research share the same stars (cutting
+economy to $\times0.5$ raised techs from 19.3 to 20.4 in 29's check), so the two gains may overlap. First play both
+schedules together and gate that against each alone; if the gains overlap, a joint state (turn, economy level,
+research level) is the experiment that can learn the interaction.
 
 \section{Notes for the paper}
-\todo{claude}{Draft: the one-sentence claim and which figure or table would carry it.}
+Draft claim: with research as a lasting level, value iteration learns a ramp, moderate research in the opening and
+full research from turn 14, that beats r15 ($+152$, 58\% of seeds better) and both fixed levels it uses ($+54$,
+$+89$). It is the first result in this line where the timing, not only the size, of a weight change is learned
+from data. Carried by the evaluation table and the factor-by-turn table, next to 29 (economy: size only) and 30
+(army: nothing to learn).
 \todo{jakob}{Is this worth a place in the paper? Where?}
 
 \end{document}

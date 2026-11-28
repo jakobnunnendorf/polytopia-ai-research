@@ -57,24 +57,117 @@ rl-gate --candidate rl-policy:experiments/30-rl-army-level/policy-bB-mM.tsv --ba
 \section{Results}
 \ExpResults
 
-\todo{claude}{After the runs.}
+All numbers are copied from \texttt{check.json}, \texttt{level-summary-b*.json}, \texttt{val-*.json},
+\texttt{eval-*.json} and the \texttt{rl-gate} JSONs in this folder (28 Nov 2026; per-seed rows dropped, the runs are
+deterministic). Data: 300{,}000 games with a random walk over the levels on r15, 8{,}512{,}460 rows, 1{,}482\,s on
+10 threads. States: 144 without income, 1{,}750 with income / 3.
+
+\paragraph{Action check} (2{,}000 check seeds, each level every turn; r15 7{,}148): $\times0.5$ 7{,}196 ($+48$,
+532 better / 493 worse), $\times0.75$ 7{,}149 ($+1$, 222 / 241), $\times1.33$ 7{,}149 ($+1$, 205 / 234), $\times2$
+7{,}157 ($+9$, 418 / 427). Most games do not change at all: at $\times0.75$ and $\times1.33$ about 77\% of the seeds
+end with exactly r15's score.
+
+\paragraph{Value iteration and validation} (2{,}000 validation seeds against r15, base mean 7{,}282).
+
+\begin{center}\small
+\begin{tabular}{lrrrrrr}
+\toprule
+version & $m$ & $V(\text{start})$ & keep $\times1$ & predicted gain & validation mean $d$ & better / worse \\
+\midrule
+(turn, level)          & 20, 100, 500 & 6{,}767 & 6{,}687 & $+80$  & $+4$  & 126 / 131 \\
+(turn, level, income)  & 20           & 6{,}938 & 6{,}685 & $+253$ & $-21$ & 192 / 207 \\
+                       & 100          & 6{,}934 & 6{,}685 & $+249$ & $-22$ & 190 / 207 \\
+                       & 500          & 6{,}906 & 6{,}685 & $+221$ & $-20$ & 200 / 209 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Chosen: $m = 500$ for both versions (the three are the same policy without income; the best of three, all within
+noise, with income).
+
+\paragraph{Evaluation seeds} (10{,}000, \texttt{rl-gate}; r15 7{,}199, median 8{,}655, p10 1{,}480):
+
+\begin{center}\small
+\begin{tabular}{llrrrrl}
+\toprule
+candidate & base & mean & mean $d$ (99\% bounds) & better / worse & sign $p$ & verdict \\
+\midrule
+(turn, level)         & r15 & 7{,}206 & $+7$ ($-8$, $+22$)   & 748 / 715     & 0.20  & FAIL \\
+(turn, level, income) & r15 & 7{,}213 & $+14$ ($-3$, $+32$)  & 1{,}084 / 1{,}017 & 0.075 & FAIL \\
+static $\times0.5$ & r15 & 7{,}209 & $+10$ ($-20$, $+40$) & 2{,}698 / 2{,}594 & 0.078 & FAIL \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Equal seeds: 8{,}537 and 7{,}899 of 10{,}000 (correlation 0.98 with r15). p10 1{,}490 and 1{,}485. 15 opponents
+(information only): $+44$ (616 / 488, $p = 7\cdot10^{-5}$) and $-14$ (348 / 301).
 
 \section{Behaviour}
-\todo{claude}{The learned schedule (mean factor by turn) of both versions.}
-\todo{jakob}{What you saw in the live games, if you watched any.}
+Mean army factor by turn on the evaluation seeds (\texttt{eval-b*-m500.json}):
+
+\begin{center}\small
+\begin{tabular}{lcccccc}
+\toprule
+version & turns 0--4 & 5--9 & 10--14 & 15--19 & 20--24 & 25--29 \\
+\midrule
+(turn, level)         & 0.70 & 0.70 & 0.90 & 1.02 & 1.20 & 1.08 \\
+(turn, level, income) & 0.78 & 1.20 & 1.13 & 0.85 & 0.90 & 0.93 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Without income the path goes down to $\times0.5$ in turns 4--6, back to $\times1$ by turn 9, and to $\times1.33$ on
+6 of turns 18--27; overall $\times0.5$ / $\times0.75$ / $\times1$ / $\times1.33$ on 11 / 35 / 36 / 18\% of turns, mean
+factor 0.93. With income the policy goes the other way in the opening (up to $\times1.56$ at turn 8) and stays near
+$\times0.9$ later; mean factor 0.97. The two versions disagree on the direction in almost every phase, a sign that
+the values of the levels are about equal.
 
 \section{Interpretation}
-\todo{claude}{Why the result came out this way, and whether the prediction held.}
-\todo{jakob}{Your reading: agree, disagree, what is missing?}
+\textbf{Prediction 1 (no fixed level beats r15 by more than 100): right} (best $\times0.5$, $+48$).
+\textbf{Prediction 2 ($-50$ to $+100$, no PASS): right} ($+7$ and $+14$, both FAIL).
+\textbf{Prediction 3 ($\le\times0.75$ from turn 25): wrong.} The path is at $\times1$ or $\times1.33$ in turns 25--28
+and at $\times0.75$ only in turn 29.
+\textbf{Prediction 4 (model optimistic by more than 200): half right.} With income it predicts $+221$ and gains $+14$;
+without income it predicts only $+80$ and gains $+7$.
+\textbf{Prediction 5 (income adds little): right} ($+7$ between the two means).
+
+\textbf{The army weight hardly matters to r15 in this setup.} Scaling the train and attack factors by 0.75 or 1.33
+leaves three quarters of the games unchanged, and halving or doubling them moves the mean by less than 50. The
+bot's army moves are decided by the terms that do not scale (threat and capture terms, unit costs), or the
+alternatives are far apart in score, so a factor of two rarely flips the choice. With so little signal, value
+iteration picks among nearly equal levels, and the path is noise: it zigzags, and the version with income chooses
+the opposite direction in the opening. Unlike economy (29) and research (31), r15's army weight is not off for
+Perfection.
+
+\textbf{The model's optimism follows the number of states.} Without income (144 states) the predicted gain is $+80$,
+with income (1{,}750 states) $+221$; the measured gain is about zero in both. More states mean more maxima over
+nearly equal, noisy $Q$ values, and so more maximisation bias.
 
 \section{Threats to validity}
-\todo{claude}{Two or three concrete threats.}
+\begin{itemize}
+  \item \emph{One coupling of train and attack.} Both factors move together, as spend3's army did. Training more
+        while attacking less (or the reverse) is not tested and could matter where the sum does not.
+  \item \emph{Opponents and setup.} Against 3 Crazy bots in Perfection, fights decide less than in Domination; with
+        15 opponents the $\times$-level policy without income gains $+44$ (information only), so army may matter
+        more in crowded games.
+  \item \emph{Factor range.} $\times0.5$ to $\times2$ may be too narrow to change the bot's army moves often; a
+        wider range (or a lower floor) was not tried.
+\end{itemize}
 
 \section{Verdict and next step}
-\todo{claude}{Kept or not, and the next experiment this suggests.}
+\textbf{Not kept}: both policies fail the \#171 rule against r15 ($+7$, $+14$, sign test not significant). A
+negative result: r15's army weight is about right for Perfection, and the timing of army does not pay either.
+
+The best fixed level of the action check, $\times0.5$ (\texttt{schedule-static-x0.5.tsv}), fails too ($+10$).
+
+Next step (one idea): split train and attack, or test the army level in the 15-opponent setup, where the info run
+hints at a small gain.
 
 \section{Notes for the paper}
-\todo{claude}{Draft: the one-sentence claim and which figure or table would carry it.}
+Draft claim: the same level method that finds a $+195$ economy and a $+152$ research gain finds nothing for army,
+because the army weight barely changes the bot's play (77\% of games unchanged at $\pm25\%$). A useful control:
+value iteration does not invent gains where the data has none, while its model still predicts $+80$ to $+221$.
+Carried by the action check and the evaluation table, next to 29 and 31.
 \todo{jakob}{Is this worth a place in the paper? Where?}
 
 \end{document}

@@ -1,0 +1,92 @@
+{
+  "tool": "rl-value fit-level",
+  "actions": "army5",
+  "actionNames": [
+    "x0.5",
+    "x0.75",
+    "x1",
+    "x1.33",
+    "x2"
+  ],
+  "incomeBucket": 3,
+  "trainSetup": {
+    "model": "greedy-full-probe-perf-r15",
+    "opp": "greedy-full-probe-perf-r15,greedy-full-probe-perf,greedy-full-probe-perf",
+    "players": 4,
+    "tribe": "xinxi",
+    "difficulty": "crazy",
+    "humanLearner": true,
+    "mode": "perfection",
+    "mapSize": 16,
+    "mapType": "continents",
+    "seedStart": 1,
+    "games": 300000,
+    "driver": "walk",
+    "actions": [
+      "x0.5",
+      "x0.75",
+      "x1",
+      "x1.33",
+      "x2"
+    ],
+    "actionSet": "army5",
+    "boost": 2.0
+  },
+  "trainFiles": [
+    "target/rl-value/army5-walk.tsv"
+  ],
+  "trainGames": 300000,
+  "runs": [
+    {
+      "minCount": 20,
+      "states": 1750,
+      "visits": 8212460,
+      "vStart": 6938.456968180471,
+      "vKeepDefaultStart": 6684.964195537105,
+      "predictedGain": 253.49277264336615,
+      "chosenShareByVisits": {
+        "x0.5": 0.09834580625050228,
+        "x0.75": 0.2850316470338973,
+        "x1": 0.3005792417862614,
+        "x1.33": 0.23109640716667113,
+        "x2": 0.08494689776266795
+      },
+      "path": [],
+      "policy": "target/rl-value/level-army5/policy-b3-m20.tsv"
+    },
+    {
+      "minCount": 100,
+      "states": 1750,
+      "visits": 8212460,
+      "vStart": 6933.716991042166,
+      "vKeepDefaultStart": 6684.964195537105,
+      "predictedGain": 248.75279550506093,
+      "chosenShareByVisits": {
+        "x0.5": 0.09864973467146262,
+        "x0.75": 0.28453885924558536,
+        "x1": 0.3010786049490652,
+        "x1.33": 0.2304481239482445,
+        "x2": 0.08528467718564231
+      },
+      "path": [],
+      "policy": "target/rl-value/level-army5/policy-b3-m100.tsv"
+    },
+    {
+      "minCount": 500,
+      "states": 1750,
+      "visits": 8212460,
+      "vStart": 6905.842037118141,
+      "vKeepDefaultStart": 6684.964195537104,
+      "predictedGain": 220.8778415810366,
+      "chosenShareByVisits": {
+        "x0.5": 0.10546230970987987,
+        "x0.75": 0.28025171507684665,
+        "x1": 0.29553215479892747,
+        "x1.33": 0.2288789230023647,
+        "x2": 0.0898748974119813
+      },
+      "path": [],
+      "policy": "target/rl-value/level-army5/policy-b3-m500.tsv"
+    }
+  ]
+}

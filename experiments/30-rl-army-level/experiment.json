@@ -6,10 +6,10 @@
   "issue": 166,
   "pr": 0,
   "date": "2026-11-28",
-  "status": "running",
-  "verdict": "pending",
+  "status": "done",
+  "verdict": "not kept",
   "base": "greedy-full-probe-perf-r15",
-  "result": null,
+  "result": "rl-gate vs greedy-full-probe-perf-r15: (turn, level) FAIL +7, with income FAIL +14, static army x0.5 FAIL +10; the army factor barely changes r15's games (77% unchanged at x0.75 / x1.33)",
   "question": "With the army factor (train and attack) as a lasting level in the state, does value iteration find when to build and use more or less army, and does that beat r15?",
   "change": "Experiment 29 with the action set army5 instead of econ5: the base bot's train and attack factors (move types 12 and 2, together, as spend3's army) at x0.5, x0.75, x1, x1.33 or x2, held between turns and moved one step at most per turn, from x1; value iteration over (turn, level) and (turn, level, income bucket).",
   "method": "300k games with a random walk over the levels; value iteration for both state versions and min-count 20, 100, 500; min-count chosen per version on 2,000 validation seeds; both chosen policies on the 10,000 evaluation seeds against r15, and against the best fixed level of the action check if one beats r15",
@@ -34,9 +34,22 @@
         100,
         500
       ],
-      "chosen": null
+      "chosen": 500
     }
   ],
-  "headline": [],
+  "headline": [
+    {
+      "label": "Mean final score, 10,000 evaluation seeds: r15 vs army-level policy (turn, level)",
+      "base": 7199,
+      "new": 7206,
+      "unit": "points"
+    },
+    {
+      "label": "Same seeds: r15 vs army-level policy (turn, level, income)",
+      "base": 7199,
+      "new": 7213,
+      "unit": "points"
+    }
+  ],
   "runs": []
 }

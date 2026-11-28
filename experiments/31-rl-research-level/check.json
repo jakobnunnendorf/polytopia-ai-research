@@ -1,0 +1,190 @@
+{
+  "tool": "rl-value check",
+  "model": "greedy-full-probe-perf-r15",
+  "opp": "greedy-full-probe-perf-r15,greedy-full-probe-perf,greedy-full-probe-perf",
+  "players": 4,
+  "difficulty": "crazy",
+  "humanLearner": true,
+  "boost": 2.0,
+  "actionSet": "research5",
+  "games": 2000,
+  "seedStart": 600000000,
+  "wallSeconds": 51.87246725,
+  "actions": [
+    {
+      "action": "bot",
+      "score": {
+        "mean": 7147.6075,
+        "sd": 3565.524343678841,
+        "p10": 1509.5,
+        "median": 8585.0,
+        "p90": 10735.0
+      },
+      "final": {
+        "cities": 2.625,
+        "income": 17.0795,
+        "units": 11.6195,
+        "levels": 13.929,
+        "techs": 19.3125
+      },
+      "vsBot": {
+        "rule": "#171: sign test (one-sided exact, ties dropped) at alpha, mean(d) upper bound >= 0, p10(candidate) >= p10(base); computed by rl-value, not rl-gate",
+        "pass": false,
+        "verdict": "FAIL",
+        "better": 0,
+        "worse": 0,
+        "ties": 2000,
+        "betterShare": null,
+        "signP": 1.0,
+        "signPass": false,
+        "meanD": 0.0,
+        "sdD": 0.0,
+        "meanDUpper": 0.0,
+        "guardMean": true,
+        "p10Candidate": 1509.5,
+        "p10Base": 1509.5,
+        "guardP10": true
+      }
+    },
+    {
+      "action": "x0.5",
+      "score": {
+        "mean": 6725.3775,
+        "sd": 3520.69555536838,
+        "p10": 1395.0,
+        "median": 7945.0,
+        "p90": 10450.0
+      },
+      "final": {
+        "cities": 2.531,
+        "income": 16.367,
+        "units": 11.1175,
+        "levels": 13.3565,
+        "techs": 18.358
+      },
+      "vsBot": {
+        "rule": "#171: sign test (one-sided exact, ties dropped) at alpha, mean(d) upper bound >= 0, p10(candidate) >= p10(base); computed by rl-value, not rl-gate",
+        "pass": false,
+        "verdict": "FAIL",
+        "better": 610,
+        "worse": 1078,
+        "ties": 312,
+        "betterShare": 0.3613744075829384,
+        "signP": 0.9999999999765192,
+        "signPass": false,
+        "meanD": -422.23,
+        "sdD": 1719.534610509017,
+        "meanDUpper": -332.7820108136461,
+        "guardMean": false,
+        "p10Candidate": 1395.0,
+        "p10Base": 1509.5,
+        "guardP10": false
+      }
+    },
+    {
+      "action": "x0.75",
+      "score": {
+        "mean": 6854.3925,
+        "sd": 3583.3087669503643,
+        "p10": 1390.0,
+        "median": 8180.0,
+        "p90": 10590.0
+      },
+      "final": {
+        "cities": 2.5915,
+        "income": 16.7515,
+        "units": 11.446,
+        "levels": 13.6975,
+        "techs": 18.4735
+      },
+      "vsBot": {
+        "rule": "#171: sign test (one-sided exact, ties dropped) at alpha, mean(d) upper bound >= 0, p10(candidate) >= p10(base); computed by rl-value, not rl-gate",
+        "pass": false,
+        "verdict": "FAIL",
+        "better": 532,
+        "worse": 925,
+        "ties": 543,
+        "betterShare": 0.365133836650652,
+        "signP": 0.9999999999926801,
+        "signPass": false,
+        "meanD": -293.215,
+        "sdD": 1498.5349569775253,
+        "meanDUpper": -215.263129878921,
+        "guardMean": false,
+        "p10Candidate": 1390.0,
+        "p10Base": 1509.5,
+        "guardP10": false
+      }
+    },
+    {
+      "action": "x1.33",
+      "score": {
+        "mean": 7237.3225,
+        "sd": 3581.6518686980276,
+        "p10": 1495.0,
+        "median": 8815.0,
+        "p90": 10736.000000000002
+      },
+      "final": {
+        "cities": 2.536,
+        "income": 16.689,
+        "units": 11.446,
+        "levels": 13.5525,
+        "techs": 19.7675
+      },
+      "vsBot": {
+        "rule": "#171: sign test (one-sided exact, ties dropped) at alpha, mean(d) upper bound >= 0, p10(candidate) >= p10(base); computed by rl-value, not rl-gate",
+        "pass": false,
+        "verdict": "FAIL",
+        "better": 936,
+        "worse": 730,
+        "ties": 334,
+        "betterShare": 0.5618247298919568,
+        "signP": 2.470652349709377e-7,
+        "signPass": true,
+        "meanD": 89.715,
+        "sdD": 1953.0121791891281,
+        "meanDUpper": 191.3081934241289,
+        "guardMean": true,
+        "p10Candidate": 1495.0,
+        "p10Base": 1509.5,
+        "guardP10": false
+      }
+    },
+    {
+      "action": "x2",
+      "score": {
+        "mean": 7112.26,
+        "sd": 3580.1905430524457,
+        "p10": 1424.5,
+        "median": 8862.5,
+        "p90": 10580.0
+      },
+      "final": {
+        "cities": 2.3245,
+        "income": 15.313,
+        "units": 11.137,
+        "levels": 12.322,
+        "techs": 19.958
+      },
+      "vsBot": {
+        "rule": "#171: sign test (one-sided exact, ties dropped) at alpha, mean(d) upper bound >= 0, p10(candidate) >= p10(base); computed by rl-value, not rl-gate",
+        "pass": false,
+        "verdict": "FAIL",
+        "better": 997,
+        "worse": 922,
+        "ties": 81,
+        "betterShare": 0.5195414278269932,
+        "signP": 0.04557262729337438,
+        "signPass": false,
+        "meanD": -35.3475,
+        "sdD": 2604.7724490825503,
+        "meanDUpper": 100.1494283168301,
+        "guardMean": true,
+        "p10Candidate": 1424.5,
+        "p10Base": 1509.5,
+        "guardP10": false
+      }
+    }
+  ]
+}

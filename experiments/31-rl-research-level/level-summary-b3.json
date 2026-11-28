@@ -1,0 +1,92 @@
+{
+  "tool": "rl-value fit-level",
+  "actions": "research5",
+  "actionNames": [
+    "x0.5",
+    "x0.75",
+    "x1",
+    "x1.33",
+    "x2"
+  ],
+  "incomeBucket": 3,
+  "trainSetup": {
+    "model": "greedy-full-probe-perf-r15",
+    "opp": "greedy-full-probe-perf-r15,greedy-full-probe-perf,greedy-full-probe-perf",
+    "players": 4,
+    "tribe": "xinxi",
+    "difficulty": "crazy",
+    "humanLearner": true,
+    "mode": "perfection",
+    "mapSize": 16,
+    "mapType": "continents",
+    "seedStart": 1,
+    "games": 300000,
+    "driver": "walk",
+    "actions": [
+      "x0.5",
+      "x0.75",
+      "x1",
+      "x1.33",
+      "x2"
+    ],
+    "actionSet": "research5",
+    "boost": 2.0
+  },
+  "trainFiles": [
+    "target/rl-value/research5-walk.tsv"
+  ],
+  "trainGames": 300000,
+  "runs": [
+    {
+      "minCount": 20,
+      "states": 1756,
+      "visits": 8186283,
+      "vStart": 7255.248843694791,
+      "vKeepDefaultStart": 6558.779650075231,
+      "predictedGain": 696.4691936195595,
+      "chosenShareByVisits": {
+        "x0.5": 0.08699516007448069,
+        "x0.75": 0.2721048124038712,
+        "x1": 0.2645011172958472,
+        "x1.33": 0.1876569622623601,
+        "x2": 0.1887419479634408
+      },
+      "path": [],
+      "policy": "target/rl-value/level-research5/policy-b3-m20.tsv"
+    },
+    {
+      "minCount": 100,
+      "states": 1756,
+      "visits": 8186283,
+      "vStart": 7253.17423698733,
+      "vKeepDefaultStart": 6558.779650075231,
+      "predictedGain": 694.3945869120989,
+      "chosenShareByVisits": {
+        "x0.5": 0.08749856314520277,
+        "x0.75": 0.27190350003780717,
+        "x1": 0.2641882769017392,
+        "x1.33": 0.18480743946917055,
+        "x2": 0.19160222044608036
+      },
+      "path": [],
+      "policy": "target/rl-value/level-research5/policy-b3-m100.tsv"
+    },
+    {
+      "minCount": 500,
+      "states": 1756,
+      "visits": 8186283,
+      "vStart": 7231.3070046495895,
+      "vKeepDefaultStart": 6558.779650075227,
+      "predictedGain": 672.5273545743621,
+      "chosenShareByVisits": {
+        "x0.5": 0.0911138791561445,
+        "x0.75": 0.26837515878696105,
+        "x1": 0.26412048056486687,
+        "x1.33": 0.1854977405496487,
+        "x2": 0.19089274094237885
+      },
+      "path": [],
+      "policy": "target/rl-value/level-research5/policy-b3-m500.tsv"
+    }
+  ]
+}
