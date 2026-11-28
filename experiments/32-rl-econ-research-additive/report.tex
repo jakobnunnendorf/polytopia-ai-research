@@ -58,24 +58,95 @@ rl-gate --candidate rl-policy:$E/policy-combined.tsv --base rl-policy:experiment
 \section{Results}
 \ExpResults
 
-\todo{claude}{After the runs.}
+All numbers are copied from the \texttt{rl-gate} JSONs in this folder (28 Nov 2026; per-seed rows dropped, the runs are
+deterministic). Encoding check (300 validation seeds $7\cdot10^8\dots$): \texttt{policy-econ-only.tsv} and
+\texttt{policy-research-only.tsv} give exactly the scores of 29's and 31's policies on every seed.
+
+\paragraph{Evaluation seeds} (10{,}000, \texttt{rl-gate}):
+
+\begin{center}\small
+\begin{tabular}{llrrrl}
+\toprule
+candidate & base & mean $d$ (99\% bounds) & better / worse & sign $p$ & verdict \\
+\midrule
+combined & r15         & $-27$ ($-74$, $+19$)    & 4{,}999 / 4{,}499 & $2\cdot10^{-7}$ & PASS (sign test) \\
+combined & 29 economy  & $-222$ ($-261$, $-184$) & 3{,}936 / 5{,}059 & 1.0 & FAIL (mean worse) \\
+combined & 31 research & $-180$ ($-221$, $-138$) & 3{,}966 / 5{,}192 & 1.0 & FAIL (mean worse) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Score distribution on the same seeds (best of 10: the expected best of 10 random seeds):
+
+\begin{center}\small
+\begin{tabular}{lrrrrrr}
+\toprule
+learner & mean & p10 & median & p90 & best of 10 & best \\
+\midrule
+r15                  & 7{,}199 & 1{,}480 & 8{,}655 & 10{,}785 & 11{,}441 & 18{,}140 \\
+29 economy           & 7{,}394 & 1{,}535 & 9{,}110 & 10{,}740 & 11{,}291 & 16{,}345 \\
+31 research          & 7{,}351 & 1{,}520 & 9{,}130 & 10{,}755 & 11{,}307 & 16{,}785 \\
+combined             & 7{,}172 & 1{,}550 & 8{,}955 & 10{,}590 & 11{,}085 & 15{,}445 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+15 opponents (information only), combined against r15: $-28$ ($-104$, $+47$), 1{,}587 better / 1{,}238 worse.
 
 \section{Behaviour}
-\todo{claude}{What the combination changes in the games.}
-\todo{jakob}{What you saw in the live games, if you watched any.}
+The combined learner plays both paths as written (the eval's factor-by-turn output matches \texttt{combine.py}'s
+paths exactly): economy at $\times0.25$--$\times0.5$ from turn 11 and research at $\times2$ from turn 14, i.e.\ in the
+second half of the game it builds a quarter to a half of r15's economy and researches at twice r15's weight.
+
+It wins more seeds than r15 (53\% of the differing seeds) and has a better lower tail (p10 1{,}550), but its strong
+games are weaker: p90 $-195$, best of 10 $-356$, best game $-2{,}695$. Each single schedule already trades a little of
+the top for the middle (29 and 31: best of 10 about $-140$ against r15); the combination does it twice, and loses
+more at the top than it gains in the middle.
 
 \section{Interpretation}
-\todo{claude}{Why the result came out this way, and whether the prediction held.}
-\todo{jakob}{Your reading: agree, disagree, what is missing?}
+\textbf{Prediction 1 (worse than either alone by at least 100, no PASS against them): right} ($-222$ and $-180$, both
+FAIL on the mean guard).
+\textbf{Prediction 2 (between $-150$ and $+100$ against r15, no PASS): half right.} The mean is $-27$, inside the range,
+but the sign test passes: the combination is better than r15 on more seeds, and worse by more on the others.
+
+\textbf{The gains do not add up; together they cancel.} 29's and 31's schedules each move the same thing, the share
+of stars that goes to techs rather than builds, and each was learned with the other weight at r15's value. Played
+together, the shift is about doubled, and it goes past the best split. The single-factor checks showed this shape
+already: economy $\times0.5$ every turn gained $+309$ but $\times0.25$ only $+60$; research $\times1.33$ gained $+89$
+but $\times2$ $-36$. Each factor has an optimum with a steep fall beyond it, and the combination lands beyond both.
+Where it falls is in the strong games: those are the ones where a growing economy pays most, and the combined
+learner gives up economy and pushes research at the same time.
+
+\textbf{What this means for the method.} A schedule learned for one factor is a best response to the other factors
+at their old values. It cannot be combined with another such schedule as if the factors were independent: the
+factors interact through the shared budget. Learning them jointly, or one on top of the other, is required.
 
 \section{Threats to validity}
-\todo{claude}{Two or three concrete threats.}
+\begin{itemize}
+  \item \emph{The look before the prediction.} The 300-seed sanity run showed $-87$ before the predictions were
+        written (stated in the question). The evaluation seeds were not seen.
+  \item \emph{One combination.} Only the two paths as learned were combined; a weaker version (e.g.\ economy $\times0.5$
+        with research $\times1.33$) might add up. This experiment shows that the learned paths do not, not that no
+        combination does.
+  \item \emph{Mechanism not measured directly.} The star split (cities, income, techs per game) is not in the gate
+        output; the overshoot reading rests on the single-factor checks of 29 and 31 and the score distribution.
+\end{itemize}
 
 \section{Verdict and next step}
-\todo{claude}{Kept or not, and the next experiment this suggests.}
+\textbf{Not kept.} The combination is about r15's level ($-27$; the sign test passes, the mean does not move) and
+far below either schedule alone ($-222$ against 29, $-180$ against 31). The economy and research gains of 29 and 31
+are not additive: the factors interact through the shared star budget.
+
+Next step (one idea): learn the two levels jointly, state (turn, economy level, research level), with a random walk
+over both (\texttt{econ-research25}, \texttt{--driver walk}). That needs \texttt{fit-level} to handle 25 levels (its
+per-action arrays are sized for five). The cheaper alternative is to learn one factor on top of the other: research
+levels with 29's economy schedule built into the base.
 
 \section{Notes for the paper}
-\todo{claude}{Draft: the one-sentence claim and which figure or table would carry it.}
+Draft claim: two single-factor schedules that each pass against r15 ($+195$ economy, $+152$ research) cancel when
+played together (combined $-27$ against r15, $-222$ against economy alone), because both shift the same star budget
+and each was learned with the other weight fixed. This motivates the joint state. Carried by the evaluation table
+and the score-distribution table.
 \todo{jakob}{Is this worth a place in the paper? Where?}
 
 \end{document}
