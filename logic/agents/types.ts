@@ -5,9 +5,9 @@
  */
 import type { Action, GameState } from "../engine/types";
 import type { GreedyWeights } from "../engine/bot";
-import type { PartialFullWeights } from "../engine/botFull";
+import type { FullActionType, PartialFullWeights } from "../engine/botFull";
 
-export type ModelKind = "greedy" | "greedy-full" | "random";
+export type ModelKind = "greedy" | "greedy-full" | "rl-schedule" | "random";
 
 export type ModelSpec = {
   /** folder name under models/, also the Elo key ("model:<id>") */
@@ -37,8 +37,13 @@ export type ModelSpec = {
   created: string;
   /** greedy: weight overrides on top of DEFAULT_WEIGHTS */
   weights?: Partial<GreedyWeights>;
-  /** greedy-full: weight overrides on top of DEFAULT_FULL_WEIGHTS (logic/engine/botFull.ts) */
+  /** greedy-full and rl-schedule: weight overrides on top of DEFAULT_FULL_WEIGHTS (logic/engine/botFull.ts) */
   full?: PartialFullWeights;
+  /**
+   * rl-schedule: the full bot with one move type's factor multiplied per turn (turn t: factors[t], later turns the
+   * last), e.g. the economy level that value iteration learned in experiment 29; source names the policy file
+   */
+  schedule?: { type: FullActionType; factors: number[]; source?: string };
 };
 
 export interface Agent {

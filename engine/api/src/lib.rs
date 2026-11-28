@@ -138,12 +138,36 @@ fn map_options(v: &Value) -> R<MapOptions> {
 enum Policy {
     Greedy(GreedyWeights),
     Full(polycore::bot_full::FullWeights),
+    /// the full-action-space bot with one move type's factor on a per-turn schedule (models of kind
+    /// "rl-schedule", e.g. the economy level of experiment 29): turn t plays weights[t], later turns the last
+    Schedule(Vec<polycore::bot_full::FullWeights>),
     Random,
+}
+
+/// kind "schedule": {"weights": <full weights>, "schedule": {"type": <move type>, "factors": [f0, f1, ...]}};
+/// turn t multiplies the move type's factor by factors[t] (the last factor after the list ends)
+fn schedule_policy(v: &Value) -> R<Policy> {
+    use polycore::bot_full::{full_weights, FULL_ACTION_TYPES};
+    let base = full_weights(&v["weights"])?;
+    let ty = v["schedule"]["type"].as_str().ok_or("schedule.type: a move type")?;
+    let t = FULL_ACTION_TYPES.iter().position(|&x| x == ty).ok_or(format!("schedule.type {ty:?}: not a move type"))?;
+    let fs = v["schedule"]["factors"].as_array().filter(|a| !a.is_empty()).ok_or("schedule.factors: a non-empty array")?;
+    let ws = fs
+        .iter()
+        .map(|f| {
+            let f = f.as_f64().filter(|f| *f > 0.0).ok_or("schedule.factors: positive numbers")?;
+            let mut w = base.clone();
+            w.ty[t] *= f;
+            Ok(w)
+        })
+        .collect::<R<_>>()?;
+    Ok(Policy::Schedule(ws))
 }
 
 fn policy(v: &Value) -> R<Policy> {
     match v["kind"].as_str() {
         Some("full") => Ok(Policy::Full(polycore::bot_full::full_weights(&v["weights"])?)),
+        Some("schedule") => schedule_policy(v),
         Some("random") => Ok(Policy::Random),
         Some("greedy") | None => Ok(Policy::Greedy(weights(&v["weights"])?)),
         Some(k) => Err(format!("unknown policy kind {k}")),
@@ -211,6 +235,7 @@ fn play_game(spec: &Value) -> R<Value> {
         let a = match &ps[(s.current as usize) % ps.len()] {
             Policy::Greedy(w) => bot_step(&s, w),
             Policy::Full(w) => polycore::bot_full::full_bot_step(&s, w),
+            Policy::Schedule(ws) => polycore::bot_full::full_bot_step(&s, &ws[(s.turn.max(0) as usize).min(ws.len() - 1)]),
             Policy::Random if in_turn > RANDOM_ACTIONS_PER_TURN => Action::EndTurn,
             Policy::Random => random_step(&s),
         };
@@ -593,6 +618,25 @@ pub fn call_json(name: &str, args_json: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn schedule_policy_plays_the_full_bot_with_the_factor_of_the_turn() {
+        let game = |p0: Value| {
+            let spec = json!({"opts": {"mapSize": 11, "players": 2, "mode": "perfection", "seed": 7, "humans": []},
+                              "policies": [p0, {"kind": "full", "weights": {}}], "maxMoves": 4000});
+            play_game(&spec).unwrap()
+        };
+        let full = |b: f64| json!({"kind": "full", "weights": {"type": {"build": b}}});
+        let sched = |f: Value| json!({"kind": "schedule", "weights": {}, "schedule": {"type": "build", "factors": f}});
+        // a constant schedule is the full bot with the factor applied; the last factor holds after the list ends
+        assert_eq!(game(sched(json!([1.0]))), game(full(1.0)));
+        assert_eq!(game(sched(json!([0.5]))), game(full(0.5)));
+        assert_eq!(game(sched(json!([0.5, 0.5, 0.5]))), game(full(0.5)));
+        assert_ne!(game(sched(json!([1.0, 1.0, 0.25]))), game(full(1.0)), "turn 2 on plays build x0.25");
+        for bad in [json!({"type": "build", "factors": []}), json!({"type": "farming", "factors": [1]}), json!({"type": "build", "factors": [0]})] {
+            assert!(policy(&json!({"kind": "schedule", "weights": {}, "schedule": bad})).is_err());
+        }
+    }
 
     #[test]
     fn perfection_bonus_percent_call_reads_the_table() {

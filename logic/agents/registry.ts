@@ -40,6 +40,18 @@ export function greedyFullAgent(spec: ModelSpec): Agent {
   return { spec, act: async (s) => fullBotStep(s, w) };
 }
 
+/**
+ * the full bot on a per-turn schedule of one move type's factor (kind "rl-schedule"); the Rust engine's
+ * playGames plays the same policy as kind "schedule" (engine/api)
+ */
+export function rlScheduleAgent(spec: ModelSpec): Agent {
+  const base = fullWeights(spec.full);
+  const sc = spec.schedule;
+  if (!sc || !sc.factors.length) throw new Error(`${spec.id}: an rl-schedule model needs schedule.factors`);
+  const ws = sc.factors.map((f) => ({ ...base, type: { ...base.type, [sc.type]: base.type[sc.type] * f } }));
+  return { spec, act: async (s) => fullBotStep(s, ws[Math.min(Math.max(s.turn, 0), ws.length - 1)]) };
+}
+
 export function randomAgent(spec: ModelSpec): Agent {
   return {
     spec,
@@ -62,6 +74,8 @@ export function createAgent(spec: ModelSpec): Agent {
       return greedyAgent(spec);
     case "greedy-full":
       return greedyFullAgent(spec);
+    case "rl-schedule":
+      return rlScheduleAgent(spec);
     case "random":
       return randomAgent(spec);
     default:

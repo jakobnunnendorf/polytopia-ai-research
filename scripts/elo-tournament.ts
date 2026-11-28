@@ -17,7 +17,7 @@
  *   README.md      the method and the ranking tables
  * Nothing under data/ is written. The dashboard: npm run elo-dashboard.
  *
- * Agents: every models/<id>/model.json of kind greedy, greedy-full or random.
+ * Agents: every models/<id>/model.json of kind greedy, greedy-full, rl-schedule or random.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -25,6 +25,7 @@ import { execFileSync } from "node:child_process";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { call } from "../logic/engine/rust";
 import { anyWeightsOf, arg, dur, isFull } from "./lib/train-greedy";
+import { fullWeights } from "../logic/engine/botFull";
 import { ANCHOR_ID, ANCHOR_RATING, fitAll, pairKey, parseResults, type Agent, type Fit, type GameRow, type Meta, type PairRow, type Ratings, type Setup } from "./lib/elo-fit";
 
 /**
@@ -60,7 +61,7 @@ const REPORT_ONLY = process.argv.includes("--report");
 const RESULTS = path.join(OUT, "results.jsonl");
 const PROGRESS = path.join(OUT, "progress.json");
 
-type Policy = { kind: "greedy" | "full" | "random"; weights?: unknown };
+type Policy = { kind: "greedy" | "full" | "schedule" | "random"; weights?: unknown; schedule?: unknown };
 type Job = { mode: string; setup: Setup; a: string; b: string; seed: number };
 
 // ---------- the worker: one map, both seatings ----------
@@ -136,6 +137,13 @@ function loadAgents(): { agents: Agent[]; policies: Record<string, Policy>; excl
     const spec = JSON.parse(fs.readFileSync(f, "utf8"));
     if (only.length && !only.includes(id)) continue;
     if (spec.kind === "random") policies[id] = { kind: "random" };
+    else if (spec.kind === "rl-schedule") {
+      if (!spec.full || !spec.schedule) {
+        excluded.push({ id, why: "kind rl-schedule without full weights and a schedule" });
+        continue;
+      }
+      policies[id] = { kind: "schedule", weights: fullWeights(spec.full), schedule: spec.schedule };
+    }
     else if (spec.kind === "greedy" || spec.kind === "greedy-full") {
       const w = anyWeightsOf(id);
       if (!w) {
