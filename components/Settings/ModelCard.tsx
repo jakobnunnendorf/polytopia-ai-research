@@ -5,6 +5,7 @@ import type { ModelSpec } from "@/logic/agents/types";
 
 const FAMILY: Record<string, string> = {
   "greedy-full": "Full greedy",
+  "rl-schedule": "RL (value iteration)",
   greedy: "Greedy",
   random: "Random",
 };
