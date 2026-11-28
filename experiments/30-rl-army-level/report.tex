@@ -1,0 +1,80 @@
+% Experiment report. Fixed sections: see experiments/TEMPLATE/report.tex and experiments/README.md.
+% Build: npm run experiment:report -- 30-rl-army-level
+\documentclass{../polyexp}
+\begin{document}
+\input{generated}
+\ExpHeader
+
+\section{Question and hypothesis}
+\textbf{The idea (David, 28 Nov 2026, issue \#166).} Experiment 29 for army: the train and attack factors (move types 12 and 2, together, as spend3's army) becomes a lasting
+level in the state, which the policy moves one step per turn. In 29 the economy level passed against r15 ($+195$),
+but the gain came from lowering economy overall, not from its timing. This experiment asks the same question for
+army, with economy at r15's weights.
+
+\textbf{Prediction} (before any run of this experiment):
+\begin{enumerate}
+  \item \emph{No fixed level helps much.} In the action check, no level played every turn beats r15 by more than 100
+        points ($\times2$ every turn is the same as spend3's army action, $+9$ in 25 and 26).
+  \item \emph{Little to gain.} The chosen policy's mean difference against r15 on the evaluation seeds is between
+        $-50$ and $+100$, and it does \emph{not} pass the \#171 rule.
+  \item \emph{Less army late.} Units trained in the last turns rarely pay back in Perfection: without income in the
+        state, the path is at $\times0.75$ or below from turn 25 on.
+  \item \emph{The model is optimistic, as in 29:} its predicted gain exceeds the measured gain by more than 200
+        points.
+  \item \emph{Income adds little}: within $\pm 60$ of the version without, not significant.
+\end{enumerate}
+\textbf{Against the prediction:} a PASS would mean that r15's army weight is off for Perfection, as its economy and
+research weights were, or that the timing pays.
+
+\section{Mechanism}
+As experiment 29, with the action set \texttt{army5} (\texttt{rl\_value::strategic}): the base bot's train and attack factors (move types 12 and 2, together, as spend3's army)
+times 0.5, 0.75, 1, 1.33 or 2. The levels are symmetric around $\times1$ because the direction is not known in
+advance (29's economy levels went down to $\times0.25$ because the check had shown that direction). At $\times1$ the
+weights are r15's, bit for bit (a test checks). The level starts at $\times1$ and moves at most one step per learner
+turn; a state without a policy entry keeps the level.
+
+\textbf{State}: (turn, level before the turn) and (turn, level, income / 3). \textbf{Value iteration}: \texttt{rl-value
+fit-level}, certainty-equivalence model, $\gamma = 1$, one backward sweep, min-count $m$ (see 29). \textbf{Data}: a
+random walk over the levels from $\times1$ (\texttt{--driver walk}).
+
+\section{Setup}
+As experiment 29: learner base \texttt{greedy-full-probe-perf-r15}; opponents r15, probe-perf and the anchor
+probe-perf, shuffled per seed; Perfection, 16$\times$16 Continents, 4 players, Crazy, learner Xin-xi in the human
+seat. Seeds as in 29: training $1\dots300{,}000$, action check $600{,}000{,}000\dots$ (2{,}000), validation
+$700{,}000{,}000\dots$ (2{,}000), evaluation $10^9\dots$ (10{,}000).
+
+Commands (from \texttt{engine/}):
+\begin{verbatim}
+B=./target/release/rl-value; R=target/rl-value; E=../experiments/30-rl-army-level
+$B check --actions army5 --games 2000 --seed-start 600000000 --out $E/check.json
+$B collect --actions army5 --driver walk --games 300000 --seed-start 1 --out $R/army5-walk.tsv
+$B fit-level --train $R/army5-walk.tsv --income-bucket 0 --min-count 20,100,500 --out $R/level-army5
+$B fit-level --train $R/army5-walk.tsv --income-bucket 3 --min-count 20,100,500 --out $R/level-army5
+$B eval --actions army5 --policy $R/level-army5/policy-bB-mM.tsv --n 2000 --seed-start 700000000 --out $E/val-bB-mM.json
+rl-gate --candidate rl-policy:experiments/30-rl-army-level/policy-bB-mM.tsv --base greedy-full-probe-perf-r15
+\end{verbatim}
+
+\section{Results}
+\ExpResults
+
+\todo{claude}{After the runs.}
+
+\section{Behaviour}
+\todo{claude}{The learned schedule (mean factor by turn) of both versions.}
+\todo{jakob}{What you saw in the live games, if you watched any.}
+
+\section{Interpretation}
+\todo{claude}{Why the result came out this way, and whether the prediction held.}
+\todo{jakob}{Your reading: agree, disagree, what is missing?}
+
+\section{Threats to validity}
+\todo{claude}{Two or three concrete threats.}
+
+\section{Verdict and next step}
+\todo{claude}{Kept or not, and the next experiment this suggests.}
+
+\section{Notes for the paper}
+\todo{claude}{Draft: the one-sentence claim and which figure or table would carry it.}
+\todo{jakob}{Is this worth a place in the paper? Where?}
+
+\end{document}

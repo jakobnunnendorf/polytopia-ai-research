@@ -6,7 +6,8 @@
 //! An action multiplies the base bot's move-type factors (`FullWeights::ty`) of its move types by the boost.
 //! `strategic5` (experiments 15, 21, 22): bot, expand, economy, army, research, where action 0 is the base bot
 //! unchanged; `spend3` (experiment 23): economy, army, research; `spend4` (experiment 26): bot, economy, army,
-//! research; `econ5` (experiment 29): a lasting economy level (build factor x0.25 .. x1.5), one step per turn.
+//! research; `econ5` (experiment 29): a lasting economy level (build factor x0.25 .. x1.5), one step per turn;
+//! `army5` and `research5` (experiments 30, 31): the same for train + attack and for research, x0.5 .. x2.
 //! Policy: a table state -> action (`rl-value fit-vi` writes it), keyed on a subset of the six features
 //! (`FeatureMask`; dropped features are 0 in the table). A state without an entry plays the action set's default:
 //! action 0 for strategic5, the base bot unchanged for spend3.
@@ -66,7 +67,15 @@ pub const ECON5: ActionSet = ActionSet {
     default: Some(3),
     scale: Some(&[0.25, 0.5, 0.75, 1.0, 1.5]),
 };
-pub const ACTION_SETS: [&ActionSet; 4] = [&STRATEGIC5, &SPEND3, &SPEND4, &ECON5];
+/// Symmetric levels for a factor without a known direction (experiments 30 and 31): x0.5, x0.75, x1, x1.33, x2.
+const SYM5_NAMES: [&str; 5] = ["x0.5", "x0.75", "x1", "x1.33", "x2"];
+const SYM5_SCALE: [f64; 5] = [0.5, 0.75, 1.0, 1.33, 2.0];
+/// The army level (experiment 30, David): the train and attack factors together (as spend3's army), held from turn
+/// to turn, one step per turn, from x1.
+pub const ARMY5: ActionSet = ActionSet { id: "army5", names: &SYM5_NAMES, boosted: &[&[12, 2], &[12, 2], &[12, 2], &[12, 2], &[12, 2]], default: Some(2), scale: Some(&SYM5_SCALE) };
+/// The research level (experiment 31, David): the research factor, held from turn to turn, one step per turn, from x1.
+pub const RESEARCH5: ActionSet = ActionSet { id: "research5", names: &SYM5_NAMES, boosted: &[&[0], &[0], &[0], &[0], &[0]], default: Some(2), scale: Some(&SYM5_SCALE) };
+pub const ACTION_SETS: [&ActionSet; 6] = [&STRATEGIC5, &SPEND3, &SPEND4, &ECON5, &ARMY5, &RESEARCH5];
 
 impl ActionSet {
     pub fn len(&self) -> usize {
@@ -433,5 +442,19 @@ mod tests {
         std::fs::write(&f, "# {\"model\": \"greedy-full-probe-perf-r15\", \"boost\": 2, \"actions\": \"spend4\", \"levelKey\": {\"incomeBucket\": 0}}\n").unwrap();
         assert!(StrategicPolicy::load(f.to_str().unwrap()).is_err());
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn army5_and_research5_levels() {
+        let base = model_weights("greedy-full-probe-perf-r15").unwrap();
+        for set in [&ARMY5, &RESEARCH5] {
+            let w = set.weights(&base, 2.0);
+            assert_eq!(w[2], base, "{}: x1 is the base bot unchanged", set.id);
+            assert!(set.is_level() && set.default == Some(2) && ActionSet::by_id(Some(set.id)).unwrap() == set);
+        }
+        let a = ARMY5.weights(&base, 2.0);
+        assert_eq!((a[4].ty[12], a[4].ty[2], a[4].ty[13]), (base.ty[12] * 2.0, base.ty[2] * 2.0, base.ty[13]));
+        let r = RESEARCH5.weights(&base, 2.0);
+        assert_eq!((r[0].ty[0], r[0].ty[12]), (base.ty[0] * 0.5, base.ty[12]));
     }
 }

@@ -554,7 +554,7 @@ const USAGE: &str = "usage:
 collect, check and eval take the setup flags; --driver bot|random|fixed:K|policy:<file> picks the strategic
 action of the learner each turn; --boost 2 is the weight multiplier of an action; --actions strategic5|spend3|spend4
 the action set (spend3: economy, army, research; states without a policy entry play the bot unchanged;
-spend4: bot, economy, army, research; econ5: a lasting economy level x0.25..x1.5, data with --driver walk).
+spend4: bot, economy, army, research; econ5: a lasting economy level x0.25..x1.5; army5, research5: x0.5..x2; level sets take --driver walk).
 Seeds must stay below 1,000,000,000 (the gate's evaluation seeds).";
 
 fn main() {

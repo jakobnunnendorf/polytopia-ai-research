@@ -1,0 +1,42 @@
+{
+  "n": 31,
+  "slug": "rl-research-level",
+  "title": "A lasting research level in the state, value iteration on r15",
+  "kind": "method",
+  "issue": 166,
+  "pr": 0,
+  "date": "2026-11-28",
+  "status": "running",
+  "verdict": "pending",
+  "base": "greedy-full-probe-perf-r15",
+  "result": null,
+  "question": "With the research factor as a lasting level in the state, does value iteration find when to research more or less, and does that beat r15?",
+  "change": "Experiment 29 with the action set research5 instead of econ5: the base bot's research factor (move type 0) at x0.5, x0.75, x1, x1.33 or x2, held between turns and moved one step at most per turn, from x1; value iteration over (turn, level) and (turn, level, income bucket).",
+  "method": "300k games with a random walk over the levels; value iteration for both state versions and min-count 20, 100, 500; min-count chosen per version on 2,000 validation seeds; both chosen policies on the 10,000 evaluation seeds against r15, and against the best fixed level of the action check if one beats r15",
+  "measured": "Paired, 10,000 evaluation seeds",
+  "metric": "final raw score, #171 rule",
+  "setups": [
+    "Perfection, 16×16 continents, 4 players, Crazy, seat 0 Xin-Xi (human seat), learner base greedy-full-probe-perf-r15; opponents greedy-full-probe-perf-r15, greedy-full-probe-perf, greedy-full-probe-perf (anchor), seats shuffled per seed (rl-gate defaults from 27 Nov)"
+  ],
+  "knobs": [
+    {
+      "name": "state",
+      "tested": [
+        "turn,level",
+        "turn,level,income/3"
+      ],
+      "chosen": null
+    },
+    {
+      "name": "minCount",
+      "tested": [
+        20,
+        100,
+        500
+      ],
+      "chosen": null
+    }
+  ],
+  "headline": [],
+  "runs": []
+}
