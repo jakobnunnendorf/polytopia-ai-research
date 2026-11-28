@@ -152,6 +152,9 @@ pub fn fit_level_cmd(m: &HashMap<String, String>) -> R<()> {
     if !set.is_level() {
         return Err(format!("{}: action set {} is not a level set (collect --actions econ5 --driver walk)", files[0], set.id));
     }
+    if set.len() > NA {
+        return Err(format!("{}: action set {} has {} levels; fit-level handles at most {NA} so far", files[0], set.id, set.len()));
+    }
     for f in &files[1..] {
         let (mt, tr) = read(f)?;
         for k in ["model", "opp", "players", "difficulty", "humanLearner", "actionSet"] {

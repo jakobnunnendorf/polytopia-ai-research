@@ -1,0 +1,32 @@
+{
+  "n": 32,
+  "slug": "rl-econ-research-additive",
+  "title": "Economy and research schedules together: do the gains of 29 and 31 add up?",
+  "kind": "method",
+  "issue": 166,
+  "pr": 0,
+  "date": "2026-11-28",
+  "status": "running",
+  "verdict": "pending",
+  "base": "greedy-full-probe-perf-r15",
+  "result": null,
+  "question": "Played together, do 29's learned economy schedule and 31's learned research schedule add their gains against r15, or do they overlap or interfere?",
+  "change": "A pair level set econ-research25 (economy level x research level, each one step per turn); 29's and 31's learned paths (turn, level, m500) written as one level policy over it. No new training.",
+  "method": "Encoding check on 300 validation seeds (one part at x1 reproduces 29's and 31's games exactly); the combined schedule gated on the 10,000 evaluation seeds against r15, against 29's policy and against 31's policy",
+  "measured": "Paired, 10,000 evaluation seeds",
+  "metric": "final raw score, #171 rule",
+  "setups": [
+    "Perfection, 16×16 continents, 4 players, Crazy, seat 0 Xin-Xi (human seat), learner base greedy-full-probe-perf-r15; opponents greedy-full-probe-perf-r15, greedy-full-probe-perf, greedy-full-probe-perf (anchor), seats shuffled per seed (rl-gate defaults from 27 Nov)"
+  ],
+  "knobs": [
+    {
+      "name": "combination",
+      "tested": [
+        "economy path x research path"
+      ],
+      "chosen": null
+    }
+  ],
+  "headline": [],
+  "runs": []
+}

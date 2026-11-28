@@ -136,7 +136,7 @@ impl Driver {
             let want = match self {
                 Driver::Walk => {
                     let h = splitmix64((seed as u64).wrapping_mul(64) ^ (f[0] as u64 + 1).wrapping_mul(0x9E37_79B9) ^ WALK_STREAM);
-                    (prev + (h % 3) as usize).saturating_sub(1)
+                    set.walk(prev, h)
                 }
                 Driver::Policy(t) => t.t.get(&level_key(f, prev, t.level.unwrap())).map_or(prev, |a| *a as usize),
                 _ => unreachable!(),
@@ -522,12 +522,12 @@ pub fn eval(m: &HashMap<String, String>) -> R<()> {
     let na = set.len();
     let t0 = Instant::now();
     // per seed: candidate and base final score, the candidate's actions (index na: the default) and turns in a policy state
-    let res: Vec<(i64, f64, f64, [u32; NA + 1], u32, Vec<(i32, usize)>)> = (seed_start..seed_start + n)
+    let res: Vec<(i64, f64, f64, Vec<u32>, u32, Vec<(i32, usize)>)> = (seed_start..seed_start + n)
         .into_par_iter()
         .map(|seed| {
             let c = play(seed, &su, &cand)?;
             let b = play(seed, &su, &based)?;
-            let mut used = [0u32; NA + 1];
+            let mut used = vec![0u32; na + 1];
             let mut known = 0;
             let Driver::Policy(t) = &cand else { unreachable!() };
             // a level policy keys on the level before the turn: the previous row's action, the default at first
@@ -550,7 +550,7 @@ pub fn eval(m: &HashMap<String, String>) -> R<()> {
     let cs: Vec<f64> = res.iter().map(|r| r.1).collect();
     let bs: Vec<f64> = res.iter().map(|r| r.2).collect();
     let g = gate_rule(&cs, &bs, 0.01);
-    let mut used = [0u64; NA + 1];
+    let mut used = vec![0u64; na + 1];
     let mut known = 0u64;
     for r in &res {
         for a in 0..=na {
@@ -570,17 +570,25 @@ pub fn eval(m: &HashMap<String, String>) -> R<()> {
     println!("turns  in a policy state {:.1}%; actions {}", 100.0 * known as f64 / turns as f64, (0..shown).map(|a| format!("{} {:.1}%", names[a], 100.0 * used[a] as f64 / turns as f64)).collect::<Vec<_>>().join(", "));
     // a level set: the mean factor the candidate played, by turn
     let mut by_turn = serde_json::Map::new();
-    if let Some(sc) = set.scale {
-        let mut acc: std::collections::BTreeMap<i32, (f64, u32)> = Default::default();
+    if set.is_level() {
+        let parts: Vec<&ActionSet> = set.pair.map_or(vec![set], |(a, b)| vec![a, b]);
+        let mut acc: std::collections::BTreeMap<i32, (Vec<f64>, u32)> = Default::default();
         for r in &res {
             for &(t, l) in &r.5 {
-                let e = acc.entry(t).or_default();
-                e.0 += sc[l];
+                let e = acc.entry(t).or_insert_with(|| (vec![0.0; parts.len()], 0));
+                for (k, f) in set.factors(l).into_iter().enumerate() {
+                    e.0[k] += f;
+                }
                 e.1 += 1;
             }
         }
-        println!("level  mean factor by turn: {}", acc.iter().map(|(t, (s, c))| format!("{t}:{:.2}", s / *c as f64)).collect::<Vec<_>>().join(" "));
-        by_turn = acc.iter().map(|(t, (s, c))| (t.to_string(), json!(s / *c as f64))).collect();
+        let mean = |k: usize| -> serde_json::Map<String, Value> { acc.iter().map(|(t, (s, c))| (t.to_string(), json!(s[k] / *c as f64))).collect() };
+        for (k, p) in parts.iter().enumerate() {
+            let label = if parts.len() > 1 { format!(" ({})", p.id) } else { String::new() };
+            println!("level  mean factor by turn{label}: {}", acc.iter().map(|(t, (s, c))| format!("{t}:{:.2}", s[k] / *c as f64)).collect::<Vec<_>>().join(" "));
+        }
+        // one part: {turn: factor}, as before; a pair: {part id: {turn: factor}}
+        by_turn = if parts.len() == 1 { mean(0) } else { parts.iter().enumerate().map(|(k, p)| (p.id.to_string(), Value::Object(mean(k)))).collect() };
     }
     println!("rule   {} ({:.1} s)", g["verdict"], t0.elapsed().as_secs_f64());
     let per: Vec<Value> = res.iter().map(|r| json!({"seed": r.0, "candidate": r.1, "base": r.2, "d": r.1 - r.2})).collect();

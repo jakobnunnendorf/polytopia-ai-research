@@ -48,16 +48,19 @@ pub struct ActionSet {
     /// a level set (experiment 29): action i multiplies the boosted types by `scale[i]` instead of the boost, and the
     /// action is a lasting level: the policy keys on the level before the turn and moves it one step at most
     pub scale: Option<&'static [f64]>,
+    /// a pair of level sets (experiment 32): level i is (first set's level i / n, second set's level i % n), n the
+    /// second set's size; each part moves one step at most per turn, and both parts' factors apply
+    pub pair: Option<(&'static ActionSet, &'static ActionSet)>,
 }
 
 /// The five strategic actions of experiments 15, 21 and 22; action 0 is the base bot unchanged.
-pub const STRATEGIC5: ActionSet = ActionSet { id: "strategic5", names: &ACTION_NAMES, boosted: &BOOSTED, default: Some(0), scale: None };
+pub const STRATEGIC5: ActionSet = ActionSet { id: "strategic5", names: &ACTION_NAMES, boosted: &BOOSTED, default: Some(0), scale: None, pair: None };
 /// Spending only (experiment 23, David): build, train and attack, research; expansion stays at the base weights.
-pub const SPEND3: ActionSet = ActionSet { id: "spend3", names: &["economy", "army", "research"], boosted: &[&[13], &[12, 2], &[0]], default: None, scale: None };
+pub const SPEND3: ActionSet = ActionSet { id: "spend3", names: &["economy", "army", "research"], boosted: &[&[13], &[12, 2], &[0]], default: None, scale: None, pair: None };
 /// Spending with the bot unchanged as an action (experiment 26, David): bot, build, train and attack, research;
 /// action 0 is also the default, so a state without an entry plays the bot unchanged.
 pub const SPEND4: ActionSet =
-    ActionSet { id: "spend4", names: &["bot", "economy", "army", "research"], boosted: &[&[], &[13], &[12, 2], &[0]], default: Some(0), scale: None };
+    ActionSet { id: "spend4", names: &["bot", "economy", "army", "research"], boosted: &[&[], &[13], &[12, 2], &[0]], default: Some(0), scale: None, pair: None };
 /// The economy level (experiment 29, David): the base bot's build factor times 0.25, 0.5, 0.75, 1 or 1.5, held
 /// from turn to turn; it starts at x1 (the default, the base bot unchanged) and moves one step per turn at most.
 pub const ECON5: ActionSet = ActionSet {
@@ -66,16 +69,33 @@ pub const ECON5: ActionSet = ActionSet {
     boosted: &[&[13], &[13], &[13], &[13], &[13]],
     default: Some(3),
     scale: Some(&[0.25, 0.5, 0.75, 1.0, 1.5]),
+    pair: None,
 };
 /// Symmetric levels for a factor without a known direction (experiments 30 and 31): x0.5, x0.75, x1, x1.33, x2.
 const SYM5_NAMES: [&str; 5] = ["x0.5", "x0.75", "x1", "x1.33", "x2"];
 const SYM5_SCALE: [f64; 5] = [0.5, 0.75, 1.0, 1.33, 2.0];
 /// The army level (experiment 30, David): the train and attack factors together (as spend3's army), held from turn
 /// to turn, one step per turn, from x1.
-pub const ARMY5: ActionSet = ActionSet { id: "army5", names: &SYM5_NAMES, boosted: &[&[12, 2], &[12, 2], &[12, 2], &[12, 2], &[12, 2]], default: Some(2), scale: Some(&SYM5_SCALE) };
+pub const ARMY5: ActionSet = ActionSet { id: "army5", names: &SYM5_NAMES, boosted: &[&[12, 2], &[12, 2], &[12, 2], &[12, 2], &[12, 2]], default: Some(2), scale: Some(&SYM5_SCALE), pair: None };
 /// The research level (experiment 31, David): the research factor, held from turn to turn, one step per turn, from x1.
-pub const RESEARCH5: ActionSet = ActionSet { id: "research5", names: &SYM5_NAMES, boosted: &[&[0], &[0], &[0], &[0], &[0]], default: Some(2), scale: Some(&SYM5_SCALE) };
-pub const ACTION_SETS: [&ActionSet; 6] = [&STRATEGIC5, &SPEND3, &SPEND4, &ECON5, &ARMY5, &RESEARCH5];
+pub const RESEARCH5: ActionSet = ActionSet { id: "research5", names: &SYM5_NAMES, boosted: &[&[0], &[0], &[0], &[0], &[0]], default: Some(2), scale: Some(&SYM5_SCALE), pair: None };
+/// Economy and research levels together (experiment 32, David): econ5 times research5, 25 level pairs, index
+/// economy * 5 + research; from (x1, x1), each part one step per turn.
+pub const ECON_RESEARCH25: ActionSet = ActionSet {
+    id: "econ-research25",
+    names: &[
+        "e0.25 r0.5", "e0.25 r0.75", "e0.25 r1", "e0.25 r1.33", "e0.25 r2",
+        "e0.5 r0.5", "e0.5 r0.75", "e0.5 r1", "e0.5 r1.33", "e0.5 r2",
+        "e0.75 r0.5", "e0.75 r0.75", "e0.75 r1", "e0.75 r1.33", "e0.75 r2",
+        "e1 r0.5", "e1 r0.75", "e1 r1", "e1 r1.33", "e1 r2",
+        "e1.5 r0.5", "e1.5 r0.75", "e1.5 r1", "e1.5 r1.33", "e1.5 r2",
+    ],
+    boosted: &[],
+    default: Some(3 * 5 + 2),
+    scale: None,
+    pair: Some((&ECON5, &RESEARCH5)),
+};
+pub const ACTION_SETS: [&ActionSet; 7] = [&STRATEGIC5, &SPEND3, &SPEND4, &ECON5, &ARMY5, &RESEARCH5, &ECON_RESEARCH25];
 
 impl ActionSet {
     pub fn len(&self) -> usize {
@@ -88,6 +108,20 @@ impl ActionSet {
     }
     /// The base weights under each action of the set.
     pub fn weights(&self, base: &FullWeights, boost: f64) -> Vec<FullWeights> {
+        if let Some((a, b)) = self.pair {
+            let wa = a.weights(base, boost);
+            let nb = b.len();
+            return (0..self.len())
+                .map(|i| {
+                    let mut w = wa[i / nb].clone();
+                    let f = b.scale.map_or(boost, |s| s[i % nb]);
+                    for &t in b.boosted[i % nb] {
+                        w.ty[t] *= f;
+                    }
+                    w
+                })
+                .collect();
+        }
         self.boosted
             .iter()
             .enumerate()
@@ -103,11 +137,32 @@ impl ActionSet {
     }
     /// a level set: the action is a lasting level (see `scale`)
     pub fn is_level(&self) -> bool {
-        self.scale.is_some()
+        self.scale.is_some() || self.pair.is_some()
     }
-    /// the next level from `prev` for a wanted level `want`: at most one step
+    /// the next level from `prev` for a wanted level `want`: at most one step (in each part of a pair)
     pub fn step(&self, prev: usize, want: usize) -> usize {
+        if let Some((a, b)) = self.pair {
+            let nb = b.len();
+            return a.step(prev / nb, want / nb) * nb + b.step(prev % nb, want % nb);
+        }
         want.clamp(prev.saturating_sub(1), (prev + 1).min(self.len() - 1))
+    }
+    /// a random-walk step from `prev` for the hash `h`: down, stay or up (in each part of a pair, independently);
+    /// the caller still applies `step`
+    pub fn walk(&self, prev: usize, h: u64) -> usize {
+        if let Some((a, b)) = self.pair {
+            let nb = b.len();
+            return a.walk(prev / nb, h).min(a.len() - 1) * nb + b.walk(prev % nb, h / 3).min(nb - 1);
+        }
+        (prev + (h % 3) as usize).saturating_sub(1)
+    }
+    /// the factors of a level: one for a level set, one per part for a pair
+    pub fn factors(&self, level: usize) -> Vec<f64> {
+        match (self.pair, self.scale) {
+            (Some((a, b)), _) => [a.factors(level / b.len()), b.factors(level % b.len())].concat(),
+            (None, Some(s)) => vec![s[level]],
+            (None, None) => vec![],
+        }
     }
 }
 
@@ -227,8 +282,9 @@ pub fn read_table(path: &str) -> R<(Value, HashMap<State, u8>)> {
         }
         let n = |i: usize| v[i].parse::<i32>().map_err(|_| format!("{path}: bad row {line:?}"));
         let a = n(6)?;
-        if a < 0 || a as usize >= NA {
-            return Err(format!("{path}: action {a} out of range 0..{}", NA - 1));
+        // the action set's own range is checked by the caller, which knows the set (25 levels for econ-research25)
+        if a < 0 || a > u8::MAX as i32 {
+            return Err(format!("{path}: action {a} out of range 0..{}", u8::MAX));
         }
         t.insert([n(0)?, n(1)?, n(2)?, n(3)?, n(4)?, n(5)?], a as u8);
     }
@@ -456,5 +512,36 @@ mod tests {
         assert_eq!((a[4].ty[12], a[4].ty[2], a[4].ty[13]), (base.ty[12] * 2.0, base.ty[2] * 2.0, base.ty[13]));
         let r = RESEARCH5.weights(&base, 2.0);
         assert_eq!((r[0].ty[0], r[0].ty[12]), (base.ty[0] * 0.5, base.ty[12]));
+    }
+
+    #[test]
+    fn econ_research25_is_both_levels_at_once() {
+        let base = model_weights("greedy-full-probe-perf-r15").unwrap();
+        let set = &ECON_RESEARCH25;
+        assert!(set.is_level() && set.len() == 25 && ActionSet::by_id(Some(set.id)).unwrap() == set);
+        let w = set.weights(&base, 2.0);
+        assert_eq!(w[set.default.unwrap()], base, "(x1, x1) is the base bot unchanged");
+        let (we, wr) = (ECON5.weights(&base, 2.0), RESEARCH5.weights(&base, 2.0));
+        for e in 0..5 {
+            for r in 0..5 {
+                let mut x = we[e].clone();
+                x.ty[0] = wr[r].ty[0];
+                assert_eq!(w[e * 5 + r], x, "level {}", set.names[e * 5 + r]);
+                assert_eq!(set.factors(e * 5 + r), vec![ECON5.scale.unwrap()[e], RESEARCH5.scale.unwrap()[r]]);
+            }
+        }
+        assert_eq!(set.names[1 * 5 + 3], "e0.5 r1.33");
+        // each part moves one step at most: (x1, x1) wanting (x0.25, x2) gets (x0.75, x1.33)
+        assert_eq!(set.step(17, 4), 2 * 5 + 3);
+        assert_eq!((set.step(0, 24), set.step(24, 0), set.step(12, 12)), (6, 18, 12));
+        // the walk stays on the grid and moves each part by one step at most
+        for prev in 0..25 {
+            for h in 0..9u64 {
+                let n = set.step(prev, set.walk(prev, h));
+                assert!(n < 25 && (n / 5).abs_diff(prev / 5) <= 1 && (n % 5).abs_diff(prev % 5) <= 1);
+            }
+        }
+        // a single set's walk is unchanged (experiments 29-31's data)
+        assert_eq!((ECON5.walk(3, 0), ECON5.walk(3, 1), ECON5.walk(3, 2), ECON5.walk(0, 0)), (2, 3, 4, 0));
     }
 }
